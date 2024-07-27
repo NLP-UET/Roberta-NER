@@ -48,8 +48,9 @@ git clone https://github.com/NLP-UET/Roberta-NER.git
 cd Roberta-NER/
 gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE
 tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
-rm -r ./Roberta-NER/xlmr.base.tar.gz
-pip install -r requirements.txt
+pip install pip==23.1
+pip install -r ./Roberta-NER/requirements.txt
+rm -r xlmr.base.tar.gz
 ```
 
 ## Training arguments:
