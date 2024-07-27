@@ -49,12 +49,12 @@ os.environ['PARAM_SET'] = 'base' # change to 'large' to use the large architectu
 
 pip install pip==23.1
 git clone https://github.com/NLP-UET/Roberta-NER.git
-!pip install -r ./Roberta-NER/requirements.txt
-!gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE  # base model
-!gdown --id 15HA6Iq5Gld2XXV27lmOOa3KlK-DV_gTq  # large model
-!tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
-!rm -r xlmr.base.tar.gz
-!rm -r xlmr.large.tar.gz
+pip install -r ./Roberta-NER/requirements.txt
+gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE  # base model
+gdown --id 15HA6Iq5Gld2XXV27lmOOa3KlK-DV_gTq  # large model
+tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
+rm -r xlmr.base.tar.gz
+rm -r xlmr.large.tar.gz
 ```
 
 ## Training arguments:
