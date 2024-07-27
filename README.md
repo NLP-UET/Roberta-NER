@@ -44,12 +44,17 @@ This project aims to explore the Roberta model and its application in the task o
 ## Setting up
 
 ```bash
+import os
+os.environ['PARAM_SET'] = 'base' # change to 'large' to use the large architecture
+
 pip install pip==23.1
 git clone https://github.com/NLP-UET/Roberta-NER.git
-pip install -r ./Roberta-NER/requirements.txt
-gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE
-tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
-rm -r xlmr.base.tar.gz
+!pip install -r ./Roberta-NER/requirements.txt
+!gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE  # base model
+!gdown --id 15HA6Iq5Gld2XXV27lmOOa3KlK-DV_gTq  # large model
+!tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
+!rm -r xlmr.base.tar.gz
+!rm -r xlmr.large.tar.gz
 ```
 
 ## Training arguments:
@@ -122,13 +127,16 @@ python ./Roberta-NER/main.py \
     --num_train_epochs 1 \
     --do_eval \
     --warmup_proportion 0.1 \
-    --pretrained_path ./Roberta-NER/pretrained_models/xlmr.base \
+    --pretrained_path ./Roberta-NER/pretrained_models/xlmr.$PARAM_SET \
     --learning_rate 0.00007 \
     --do_train \
     --eval_on test \
     --train_batch_size 4 \
     --dropout 0.2
 ```
+If you want to use the XLM-R model's outputs as features without finetuning, Use the `--freeze_model` argument.
+
+By default, the best model on the validation set is saved to `args.output_dir`. This model is then loaded and tested on the test set, if `--do_eval` and `--eval_on test`.
 
 ## Contribution
 We welcome contributions from the community. Please create an issue or submit a pull request so we can review and integrate it into the project.
