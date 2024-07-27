@@ -114,15 +114,15 @@ pip install -r requirements.txt
 
 For example:
 ```bash
-python ./xlm-roberta-ner/main.py \
-    --data_dir ./xlm-roberta-ner/data/coNLL-2003/ \
+python ./Roberta-NER/main.py \
+    --data_dir ./Roberta-NER/data/coNLL-2003/ \
     --task_name ner \
     --output_dir model_dir/ \
     --max_seq_length 16 \
     --num_train_epochs 1 \
     --do_eval \
     --warmup_proportion 0.1 \
-    --pretrained_path ./xlm-roberta-ner/pretrained_models/xlmr.base \
+    --pretrained_path ./Roberta-NER/pretrained_models/xlmr.base \
     --learning_rate 0.00007 \
     --do_train \
     --eval_on test \
