@@ -45,9 +45,8 @@ This project aims to explore the Roberta model and its application in the task o
 
 ```bash
 pip install pip==23.1
-pip install -r ./Roberta-NER/requirements.txt
 git clone https://github.com/NLP-UET/Roberta-NER.git
-cd Roberta-NER/
+pip install -r ./Roberta-NER/requirements.txt
 gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE
 tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
 rm -r xlmr.base.tar.gz
