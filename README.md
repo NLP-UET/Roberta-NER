@@ -47,12 +47,15 @@ This project aims to explore the Roberta model and its application in the task o
 import os
 os.environ['PARAM_SET'] = 'base' # change to 'large' to use the large architecture
 
+# we use pip 23.1 to run 
 pip install pip==23.1
+# clone the repo
 git clone https://github.com/NLP-UET/Roberta-NER.git
 pip install -r ./Roberta-NER/requirements.txt
 gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE  # base model
 gdown --id 15HA6Iq5Gld2XXV27lmOOa3KlK-DV_gTq  # large model
 tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
+tar -xzvf xlmr.large.tar.gz -C ./Roberta-NER/pretrained_models/
 rm -r xlmr.base.tar.gz
 rm -r xlmr.large.tar.gz
 ```
