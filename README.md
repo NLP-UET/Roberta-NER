@@ -41,23 +41,65 @@ This project aims to explore the Roberta model and its application in the task o
 - Transformers (Hugging Face)
 - Other libraries: pandas, numpy, scikit-learn, etc.
 
-## Installation Guide
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/NLP-UET/Roberta-NER.git
-   cd Roberta-NER
-   ```
+## Setting up
 
-2. Install the required libraries:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/NLP-UET/Roberta-NER.git
+cd Roberta-NER/
+!gdown --id 1uC7UYA-BDg-dJYB_C6aphyJ5IWweVzXE
+!tar -xzvf xlmr.base.tar.gz -C ./Roberta-NER/pretrained_models/
+rm -r ./Roberta-NER/xlmr.base.tar.gz
+pip install -r requirements.txt
+```
 
-3. Run the training and evaluation scripts:
-   ```bash
-   python train.py
-   python evaluate.py
-   ```
+## Training arguments:
+
+- `-h, --help`            show this help message and exit
+- `--data_dir DATA_DIR`   The input data dir. Should contain the .tsv files (or other data files) for the task.
+- `--pretrained_path PRETRAINED_PATH` pretrained XLM-Roberta model path
+- `--task_name TASK_NAME` The name of the task to train.
+- `--output_dir OUTPUT_DIR` The output directory where the model predictions and checkpoints will be written.
+- `--max_seq_length MAX_SEQ_LENGTH` The maximum total input sequence length after WordPiece tokenization. Sequences longer than this will be truncated, and sequences shorter than this will be padded.
+- `--do_train`            Whether to run training.
+- `--do_eval`             Whether to run eval or not.
+- `--eval_on EVAL_ON`     Whether to run eval on the dev set or test set.
+- `--do_lower_case`       Set this flag if you are using an uncased model.
+- `--train_batch_size TRAIN_BATCH_SIZE` Total batch size for training.
+- `--eval_batch_size EVAL_BATCH_SIZE` Total batch size for eval.
+- `--learning_rate LEARNING_RATE` The initial learning rate for Adam.
+- `--num_train_epochs NUM_TRAIN_EPOCHS` Total number of training epochs to perform.
+- `--warmup_proportion WARMUP_PROPORTION` Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10% of training.
+- `--weight_decay WEIGHT_DECAY` Weight decay if we apply some.
+- `--adam_epsilon ADAM_EPSILON` Epsilon for Adam optimizer.
+- `--max_grad_norm MAX_GRAD_NORM` Max gradient norm.
+- `--no_cuda`             Whether not to use CUDA when available
+- `--seed SEED`           random seed for initialization
+- `--gradient_accumulation_steps GRADIENT_ACCUMULATION_STEPS` Number of updates steps to accumulate before performing a backward/update pass.
+- `--fp16`                Whether to use 16-bit float precision instead of 32-bit
+- `--fp16_opt_level FP16_OPT_LEVEL` For fp16: Apex AMP optimization level selected in ['O0', 'O1', 'O2', and 'O3']. See details at https://nvidia.github.io/apex/amp.html
+- `--loss_scale LOSS_SCALE` Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True. 0 (default value): dynamic loss scaling. Positive power of 2: static loss scaling value.
+- `--dropout DROPOUT`     training dropout probability
+- `--freeze_model`        whether to freeze the XLM-R base model and train only the classification heads
+
+## How to run
+
+For example:
+```bash
+python main.py \
+      --data_dir=data/coNLL-2003/  \
+      --task_name=ner   \
+      --output_dir=model_dir/   \
+      --max_seq_length=16   \
+      --num_train_epochs 1  \
+      --do_eval \
+      --warmup_proportion=0.1 \
+      --pretrained_path pretrained_models/xlmr.$PARAM_SET/ \
+      --learning_rate 0.00007 \
+      --do_train \
+      --eval_on test \
+      --train_batch_size 4 \
+      --dropout 0.2
+```
 
 ## Contribution
 We welcome contributions from the community. Please create an issue or submit a pull request so we can review and integrate it into the project.
