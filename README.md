@@ -125,7 +125,7 @@ For example:
 python ./Roberta-NER/main.py \
     --data_dir ./Roberta-NER/data/coNLL-2003/ \
     --task_name ner \
-    --output_dir model_dir/ \
+    --output_dir ./Roberta-NER/model_dir/ \
     --max_seq_length 16 \
     --num_train_epochs 1 \
     --do_eval \
@@ -140,6 +140,13 @@ python ./Roberta-NER/main.py \
 If you want to use the XLM-R model's outputs as features without finetuning, Use the `--freeze_model` argument.
 
 By default, the best model on the validation set is saved to `args.output_dir`. This model is then loaded and tested on the test set, if `--do_eval` and `--eval_on test`.
+
+### Predicting
+To predict named entities in any text using the trained model, you can run the following command:
+```bash
+python ./Roberta-NER/predict.py --pretrained_path ./Roberta-NER/pretrained_models/xlmr.base --output_dir ./Roberta-NER/model_dir/ --text "your input text"
+```
+Simply replace `"your input text"` with the text you want to analyze.
 
 ## Contribution
 We welcome contributions from the community. Please create an issue or submit a pull request so we can review and integrate it into the project.
