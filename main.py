@@ -172,6 +172,9 @@ def main():
                     if global_step % 100 == 0:
                         logger.info(f"Iteration: {global_step}, Loss: {tr_loss / nb_tr_steps:.4f}")
 
+            # Ensure the last iteration's loss is printed
+            logger.info(f"Epoch {epoch + 1} completed. Final Loss: {tr_loss / nb_tr_steps:.4f}")
+
             logger.info("\nTesting on validation set...")
             f1, report = evaluate_model(model, val_data, label_list, args.eval_batch_size, device)
             if f1 > best_val_f1:
@@ -182,6 +185,7 @@ def main():
                 torch.save(model.state_dict(), open(os.path.join(args.output_dir, 'model.pt'), 'wb'))
             else:
                 logger.info(f"\nNo better F1 score: {f1}\n")
+
 
     else:  # load a saved model
         state_dict = torch.load(open(os.path.join(args.output_dir, 'model.pt'), 'rb'))
