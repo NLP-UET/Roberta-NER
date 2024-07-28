@@ -27,7 +27,6 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser = add_xlmr_args(parser)
@@ -45,14 +44,12 @@ def main():
     torch.manual_seed(args.seed)
 
     if not args.do_train and not args.do_eval:
-        raise ValueError(
-            "At least one of `do_train` or `do_eval` must be True.")
+        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
-        raise ValueError(
-            "Output directory ({}) already exists and is not empty.".format(args.output_dir))
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
+    else:
+        logger.info(f"Output directory ({args.output_dir}) already exists and will be used.")
 
     processor = NerProcessor()
     label_list = processor.get_labels()
@@ -143,10 +140,8 @@ def main():
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
 
-            tbar = tqdm(train_dataloader, desc="Iteration", total=len(train_dataloader))
-
             model.train()
-            for step, batch in enumerate(tbar):
+            for step, batch in enumerate(train_dataloader):
                 batch = tuple(t.to(device) for t in batch)
                 input_ids, label_ids, l_mask, valid_ids = batch
                 loss = model(input_ids, label_ids, l_mask, valid_ids)
@@ -167,7 +162,6 @@ def main():
                 tr_loss += loss.item()
                 nb_tr_examples += input_ids.size(0)
                 nb_tr_steps += 1
-                tbar.set_postfix(loss=tr_loss / (step + 1))
 
                 if (step + 1) % args.gradient_accumulation_steps == 0:
                     optimizer.step()
@@ -175,16 +169,20 @@ def main():
                     model.zero_grad()
                     global_step += 1
 
+                    if global_step % 100 == 0:
+                        logger.info(f"Iteration: {global_step}, Loss: {tr_loss / nb_tr_steps:.4f}")
+
             logger.info("\nTesting on validation set...")
             f1, report = evaluate_model(model, val_data, label_list, args.eval_batch_size, device)
             if f1 > best_val_f1:
                 best_val_f1 = f1
-                logger.info("\nFound better f1=%.4f on validation set. Saving model\n" % (f1))
-                logger.info("%s\n" % (report))
+                logger.info(f"\nFound better f1={f1:.4f} on validation set. Saving model\n")
+                logger.info(f"{report}\n")
 
                 torch.save(model.state_dict(), open(os.path.join(args.output_dir, 'model.pt'), 'wb'))
             else:
-                logger.info("\nNo better F1 score: {}\n".format(f1))
+                logger.info(f"\nNo better F1 score: {f1}\n")
+
     else:  # load a saved model
         state_dict = torch.load(open(os.path.join(args.output_dir, 'model.pt'), 'rb'))
         model.load_state_dict(state_dict)
