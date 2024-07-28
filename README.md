@@ -125,7 +125,7 @@ For example:
 python ./Roberta-NER/main.py \
     --data_dir ./Roberta-NER/data/coNLL-2003/ \
     --task_name ner \
-    --output_dir ./Roberta-NER/model_dir/ \
+    --output_dir ./Roberta-NER/result/ \
     --max_seq_length 16 \
     --num_train_epochs 1 \
     --do_eval \
@@ -144,7 +144,7 @@ By default, the best model on the validation set is saved to `args.output_dir`. 
 ### Predicting
 To predict named entities in any text using the trained model, you can run the following command:
 ```bash
-python ./Roberta-NER/predict.py --pretrained_path ./Roberta-NER/pretrained_models/xlmr.base --output_dir ./Roberta-NER/model_dir/ --text "your input text"
+python ./Roberta-NER/predict.py --pretrained_path ./Roberta-NER/pretrained_models/xlmr.base --output_dir ./Roberta-NER/result/ --text "your input text"
 ```
 Simply replace `"your input text"` with the text you want to analyze.
 
