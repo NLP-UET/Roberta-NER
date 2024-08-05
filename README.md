@@ -119,6 +119,10 @@ rm -r xlmr.large.tar.gz
                         the classification heads
 ```
 ## How to run
+For example (for RoBERTa Base):
+```bash
+python ./Roberta-NER/roberta-base.py --epochs 1 --learning_rate 1e-5 --batch_size 8 --num_labels 9
+```
 
 For example (for XLM-RoBERTa):
 ```bash
@@ -136,10 +140,6 @@ python ./Roberta-NER/main.py \
     --eval_on test \
     --train_batch_size 4 \
     --dropout 0.2
-```
-For example (for RoBERTa Base):
-```bash
-python ./Roberta-NER/roberta-base.py --epochs 1 --learning_rate 1e-5 --batch_size 8 --num_labels 9
 ```
 If you want to use the XLM-R model's outputs as features without finetuning, Use the `--freeze_model` argument.
 
