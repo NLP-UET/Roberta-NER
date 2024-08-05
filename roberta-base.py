@@ -135,7 +135,7 @@ def main(args):
 
     # Save the classification report
     report = classification_report(true_labels_main, true_predictions_main, labels=main_labels, zero_division=0)
-    report_filename = os.path.join(results_dir, "roberta_base_classification_report.txt")
+    report_filename = os.path.join(results_dir, "roberta_eval_results.txt")
     with open(report_filename, "w") as f:
         f.write(report)
     
