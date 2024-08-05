@@ -1,124 +1,150 @@
-import torch
-import torch.optim as optim
-from transformers import RobertaTokenizer, RobertaForTokenClassification
-from datasets import load_dataset
-import numpy as np
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from sklearn.metrics import classification_report
 import argparse
+import numpy as np
+import torch
+from transformers import RobertaTokenizerFast, RobertaForTokenClassification, TrainingArguments, Trainer
+from datasets import load_dataset, load_metric
+from sklearn.metrics import classification_report
+import warnings
+import os
 
-# Argument parsing
-parser = argparse.ArgumentParser(description="Train and evaluate a RoBERTa model for token classification.")
-parser.add_argument("--epochs", type=int, default=1, help="Number of epochs to train.")
-parser.add_argument("--learning_rate", type=float, default=1e-5, help="Learning rate.")
-parser.add_argument("--batch_size", type=int, default=4, help="Batch size.")
-parser.add_argument("--num_labels", type=int, default=9, help="Number of labels.")
-args = parser.parse_args()
+# Suppress warnings related to tags not being recognized
+warnings.filterwarnings("ignore", message=".*seems not to be NE tag.*")
 
-# Load the dataset
-dataset = load_dataset("conll2003")
+# Define the labels for the CoNLL-2003 dataset
+label_list = ["O", "B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "B-MISC", "I-MISC"]
+main_labels = ["PER", "ORG", "LOC", "MISC"]  # Main labels excluding 'O'
 
-# Initialize the tokenizer and model
-tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-roberta_version = 'roberta-base'
-num_labels = args.num_labels  # Update with the correct number of labels in your dataset
+# Define a function to convert sub-labels to main labels
+def convert_to_main_labels(labels):
+    label_map = {
+        "B-PER": "PER", "I-PER": "PER",
+        "B-ORG": "ORG", "I-ORG": "ORG",
+        "B-LOC": "LOC", "I-LOC": "LOC",
+        "B-MISC": "MISC", "I-MISC": "MISC",
+        "O": "O"
+    }
+    return [label_map.get(label, "O") for label in labels]
 
-# Function to add encodings
-def add_encodings(example):
-    encodings = tokenizer(example['tokens'], truncation=True, padding='max_length', is_split_into_words=True)
-    labels = example['ner_tags'] + [0] * (tokenizer.model_max_length - len(example['ner_tags']))
-    return {**encodings, 'labels': labels}
+# Define a function to compute metrics
+metric = load_metric("seqeval")
 
-# Apply the function to the dataset
-dataset = dataset.map(add_encodings)
-dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
+def compute_metrics(p):
+    predictions, labels = p
+    predictions = np.argmax(predictions, axis=2)
 
-# Create label dictionaries
-labels = dataset['train'].features['ner_tags'].feature
-label2id = {k: labels.str2int(k) for k in labels.names}
-id2label = {v: k for k, v in label2id.items()}
+    true_labels = [[label_list[l] for l in label if l != -100] for label in labels]
+    true_predictions = [[label_list[p] for (p, l) in zip(prediction, label) if l != -100]
+                        for prediction, label in zip(predictions, labels)]
 
-# Initialize the model
-model = RobertaForTokenClassification.from_pretrained(roberta_version, num_labels=num_labels)
-model.config.id2label = id2label
-model.config.label2id = label2id
+    # Convert to main labels for the classification report
+    true_labels_main = [convert_to_main_labels(label) for label in true_labels]
+    true_predictions_main = [convert_to_main_labels(prediction) for prediction in true_predictions]
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+    results = metric.compute(predictions=true_predictions_main, references=true_labels_main)
+    return {
+        "precision": results["overall_precision"],
+        "recall": results["overall_recall"],
+        "f1": results["overall_f1"],
+        "accuracy": results["overall_accuracy"],
+    }
 
-# Initialize the optimizer
-optimizer = optim.AdamW(params=model.parameters(), lr=args.learning_rate)
+class CustomTrainer(Trainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
+    def log(self, logs):
+        super().log(logs)
+        if 'epoch' in logs:
+            print(f"Epoch: {logs['epoch']}, Loss: {logs['loss']:.4f}")
 
-# Training settings
-n_epochs = args.epochs
-train_data = torch.utils.data.DataLoader(dataset['train'], batch_size=args.batch_size)
+def main(args):
+    # Load the CoNLL-2003 dataset
+    datasets = load_dataset("conll2003")
 
-# Training loop
-train_loss = []
-for epoch in tqdm(range(n_epochs), desc="Epochs"):
-    current_loss = 0
-    for i, batch in enumerate(train_data):
-        batch = {k: v.to(device) for k, v in batch.items()}
-        outputs = model(**batch)
-        loss = outputs.loss
-        loss.backward()
-        current_loss += loss.item()
-        if (i + 1) % 100 == 0:  # Print process after every 100 iterations
-            optimizer.step()
-            optimizer.zero_grad()
-            train_loss.append(current_loss / 100)
-            print(f"Epoch {epoch + 1}, Iteration {i + 1}, Loss: {current_loss / 100:.4f}")
-            current_loss = 0
-    optimizer.step()
-    optimizer.zero_grad()
+    # Load the tokenizer and model
+    tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
+    model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=len(label_list))
 
-# Plot training loss
-fig, ax = plt.subplots(figsize=(10, 4))
-ax.plot(train_loss)
-ax.set_ylabel('Loss')
-ax.set_xlabel('Iterations (100 examples)')
-fig.tight_layout()
-plt.show()
+    # Tokenize the data
+    def tokenize_and_align_labels(examples):
+        tokenized_inputs = tokenizer(examples["tokens"], padding='max_length', truncation=True, max_length=128, is_split_into_words=True)
+        labels = []
+        for i, label in enumerate(examples["ner_tags"]):
+            word_ids = tokenized_inputs.word_ids(batch_index=i)
+            previous_word_idx = None
+            label_ids = []
+            for word_idx in word_ids:
+                if word_idx is None:
+                    label_ids.append(-100)
+                elif word_idx != previous_word_idx:
+                    label_ids.append(label[word_idx])
+                else:
+                    label_ids.append(-100)
+                previous_word_idx = word_idx
+            # Pad labels to max length
+            label_ids += [-100] * (128 - len(label_ids))
+            labels.append(label_ids)
+        tokenized_inputs["labels"] = labels
+        return tokenized_inputs
 
-# Evaluation
-model.eval()
-test_data = torch.utils.data.DataLoader(dataset['test'], batch_size=args.batch_size)
+    # Apply tokenization and label alignment to the train and validation sets
+    tokenized_datasets = datasets.map(tokenize_and_align_labels, batched=True, remove_columns=["tokens", "pos_tags", "chunk_tags", "ner_tags"])
 
-# Collect predictions and true labels for metrics calculation
-true_labels = []
-pred_labels = []
-for i, batch in enumerate(tqdm(test_data, desc="Testing Batches")):
-    with torch.no_grad():
-        batch = {k: v.to(device) for k, v in batch.items()}
-        outputs = model(**batch)
-    s_lengths = batch['attention_mask'].sum(dim=1)
-    for idx, length in enumerate(s_lengths):
-        true_values = batch['labels'][idx][:length].cpu().numpy()
-        pred_values = torch.argmax(outputs.logits, dim=2)[idx][:length].cpu().numpy()
-        true_labels.extend(true_values)
-        pred_labels.extend(pred_values)
+    # Define TrainingArguments with parameters from command line arguments
+    training_args = TrainingArguments(
+        output_dir=os.path.join(args.output_dir, "results"),
+        eval_strategy="epoch",
+        learning_rate=args.learning_rate,
+        per_device_train_batch_size=args.batch_size,
+        per_device_eval_batch_size=args.batch_size,
+        num_train_epochs=args.epochs,
+        weight_decay=args.weight_decay,
+    )
 
-# Print classification report
-print("Classification Report:")
-print(classification_report(true_labels, pred_labels, target_names=labels.names))
+    # Define the Trainer
+    trainer = CustomTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=tokenized_datasets["train"],
+        eval_dataset=tokenized_datasets["validation"],
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
 
-# Create confusion matrix
-confusion = torch.zeros(num_labels, num_labels)
-for true, pred in zip(true_labels, pred_labels):
-    confusion[true][pred] += 1
+    # Train the model
+    trainer.train()
 
-# Plot confusion matrix
-fig, ax = plt.subplots(figsize=(10, 10))
-ax.matshow(confusion.numpy(), cmap='Blues')
+    # Evaluate the model
+    predictions, labels, _ = trainer.predict(tokenized_datasets["test"])
+    predictions = np.argmax(predictions, axis=2)
 
-labels = list(label2id.keys())
-ids = np.arange(len(labels))
-ax.set_ylabel('True Labels', fontsize='x-large')
-ax.set_xlabel('Pred Labels', fontsize='x-large')
-ax.set_xticks(ids)
-ax.set_xticklabels(labels)
-ax.set_yticks(ids)
-ax.set_yticklabels(labels)
-fig.tight_layout()
-plt.show()
+    true_labels = [label for sublist in [[label_list[l] for l in label if l != -100] for label in labels] for label in sublist]
+    true_predictions = [label for sublist in [[label_list[p] for (p, l) in zip(prediction, label) if l != -100]
+                        for prediction, label in zip(predictions, labels)] for label in sublist]
+
+    # Convert to main labels for the classification report
+    true_labels_main = convert_to_main_labels(true_labels)
+    true_predictions_main = convert_to_main_labels(true_predictions)
+
+    # Create results directory if it doesn't exist
+    results_dir = os.path.join(args.output_dir, "result")
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Save the classification report
+    report = classification_report(true_labels_main, true_predictions_main, labels=main_labels, zero_division=0)
+    report_filename = os.path.join(results_dir, "roberta_base_classification_report.txt")
+    with open(report_filename, "w") as f:
+        f.write(report)
+    
+    print(f"Classification report saved to {report_filename}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output_dir", type=str, default="./Roberta-NER", help="Directory to save the results and model checkpoints")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size for training and evaluation")
+    parser.add_argument("--learning_rate", type=float, default=2e-5, help="Learning rate for training")
+    parser.add_argument("--epochs", type=int, default=3, help="Number of epochs for training")
+    parser.add_argument("--weight_decay", type=float, default=0.01, help="Weight decay for training")
+
+    args = parser.parse_args()
+    main(args)
