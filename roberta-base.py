@@ -55,11 +55,14 @@ class CustomTrainer(Trainer):
     def log(self, logs):
         super().log(logs)
         if 'epoch' in logs:
-            print(f"Epoch: {logs['epoch']}, Loss: {logs['loss']:.4f}")
+            # Print the epoch and loss if 'loss' is in logs
+            epoch_info = f"Epoch: {logs['epoch']:.2f}"
+            loss_info = f", Loss: {logs.get('loss', 'N/A'):.4f}" if 'loss' in logs else ""
+            print(epoch_info + loss_info)
 
 def main(args):
-    # Load the CoNLL-2003 dataset
-    datasets = load_dataset("conll2003")
+    # Load the CoNLL-2003 dataset with trust_remote_code=True
+    datasets = load_dataset("conll2003", trust_remote_code=True)
 
     # Load the tokenizer and model
     tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
@@ -92,7 +95,7 @@ def main(args):
 
     # Define TrainingArguments with parameters from command line arguments
     training_args = TrainingArguments(
-        output_dir=os.path.join(args.output_dir, "results"),
+        output_dir=os.path.join(args.output_dir, "roberta-base"),
         eval_strategy="epoch",
         learning_rate=args.learning_rate,
         per_device_train_batch_size=args.batch_size,

@@ -212,7 +212,7 @@ def main():
         f1_score, report = evaluate_model(model, eval_data, label_list, args.eval_batch_size, device)
 
         logger.info("\n%s", report)
-        output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
+        output_eval_file = os.path.join(args.output_dir, "xlmr_eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Writing results to file *****")
             writer.write(report)

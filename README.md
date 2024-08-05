@@ -121,7 +121,7 @@ rm -r xlmr.large.tar.gz
 ## How to run
 For example (for RoBERTa Base):
 ```bash
-python ./Roberta-NER/roberta-base.py --output_dir ./Roberta-NER/result/ --batch_size 32 --learning_rate 3e-5 --epochs 1 --weight_decay 0.01
+python ./Roberta-NER/roberta-base.py --output_dir ./Roberta-NER/ --batch_size 32 --learning_rate 3e-5 --epochs 1 --weight_decay 0.01
 ```
 
 For example (for XLM-RoBERTa):
